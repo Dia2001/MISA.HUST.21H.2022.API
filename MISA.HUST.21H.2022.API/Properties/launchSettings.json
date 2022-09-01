@@ -1,0 +1,37 @@
+﻿{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  // Như một websever nhưng chỉ chạy ở máy tính
+  "iisSettings": {
+    // Không cần xác thực tài khoản window nhưng vẫn chạy được
+    "windowsAuthentication": false,
+    // Không cần tài khoản
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      // Thiết lập mặc định cái domain của nó là localhost và chạy ở port 48388
+      "applicationUrl": "http://localhost:48388",
+      "sslPort": 0
+    }
+  },
+  "profiles": {
+    // Chạy cái này thì bật lên một cái cổng conso
+    "MISA.HUST._21H._2022.API": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:5220",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    // Chạy cái này thì không có cổng conso nên khuyển khích chạy cái này
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
