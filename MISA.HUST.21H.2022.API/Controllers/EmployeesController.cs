@@ -1,15 +1,18 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Dapper;
 using Microsoft.AspNetCore.Mvc;
 using MISA.HUST._21H._2022.API.Entities;
 using MISA.HUST._21H._2022.API.Entities.DTO;
-using MISA.HUST._21H._2022.API.Enums;
+using MISA.HUST._21H._2022.API.Helper;
+using MySqlConnector;
 
 namespace MISA.HUST._21H._2022.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [ApiController]
     public class EmployeesController : ControllerBase
     {
+        static public readonly string connectionString = AppSettings.Instance.ConnectionString;
+
         /// <summary>
         /// API lấy tất cả danh sách nhân viên
         /// </summary>
@@ -18,59 +21,68 @@ namespace MISA.HUST._21H._2022.API.Controllers
         [HttpGet]
         public IActionResult GetAllEmployees()
         {
-            return StatusCode(StatusCodes.Status200OK, new List<Employee>
+            try
             {
-                new Employee
+        
+                // Khởi tạo kết nối tới DB MySQL
+                var mySqlConnection = new MySqlConnection(connectionString);
+
+                // Chuẩn bị câu lệnh truy vấn
+                string getAllEmployeesCommand = "SELECT * FROM employee;";
+
+                // Thực hiện gọi vào DB để chạy câu lệnh truy vấn ở trên
+                var employees = mySqlConnection.Query<Employee>(getAllEmployeesCommand);
+
+                // Xử lý dữ liệu trả về
+                if (employees!= null)
                 {
-                    EmployeeID=Guid.NewGuid(),
-                    EmployeeCode="NV11111",
-                    EmployeeName="Nguyễn Văn Dìa",
-                    DateOfBirth=DateTime.Now,
-                    Gender=Gender.Male,
-                    IdentityNumber="123456789102",
-                    IdentityIssuedPlace="CA Hà Nội",
-                    IdentityIssuedDate=DateTime.Now,
-                    Email="nguyenvandiat@gmail.com",
-                    PhoneNumber="123456789",
-                    PositionID=Guid.NewGuid(),
-                    PositionName="Kế toán",
-                    DepartmentID=Guid.NewGuid(),
-                    DepartmentName="Phòng kế toán",
-                    TaxCode="123456789",
-                    Salary=12345678,
-                    JoiningDate=DateTime.Now,
-                    WorkStatus=WorkStatus.CurrentlyWorking,
-                    CreatedDate=DateTime.Now,
-                    CreatedBy="Nguyễn hữu nhân",
-                    ModifiedDate=DateTime.Now,
-                    ModifiedBy="Nguyễn hữu nhân"
-                },
-                 new Employee
-                {
-                    EmployeeID=Guid.NewGuid(),
-                    EmployeeCode="NV11112",
-                    EmployeeName="Nguyễn Hữu Nhân",
-                    DateOfBirth=DateTime.Now,
-                    Gender=Gender.Male,
-                    IdentityNumber="123456789103",
-                    IdentityIssuedPlace="CA Hà Nội",
-                    IdentityIssuedDate=DateTime.Now,
-                    Email="nguyenhuunhant@gmail.com",
-                    PhoneNumber="123456789",
-                    PositionID=Guid.NewGuid(),
-                    PositionName="Kế toán",
-                    DepartmentID=Guid.NewGuid(),
-                    DepartmentName="Phòng kế toán",
-                    TaxCode="123456789",
-                    Salary=12345678,
-                    JoiningDate=DateTime.Now,
-                    WorkStatus=WorkStatus.CurrentlyWorking,
-                    CreatedDate=DateTime.Now,
-                    CreatedBy="Nguyễn văn dìa",
-                    ModifiedDate=DateTime.Now,
-                    ModifiedBy="Nguyễn Văn dìa"
+                    // Trả về dữ liệu cho client
+                    return StatusCode(StatusCodes.Status200OK, employees);
                 }
-            });
+                else
+                {
+                    return StatusCode(StatusCodes.Status400BadRequest, "e002");
+                }
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message);
+                return StatusCode(StatusCodes.Status400BadRequest, "e001");
+            }
+        }
+        /// <summary>
+        /// API Lấy mã nhân viên mới tự động tăng
+        /// </summary>
+        /// <returns>Mã nhân viên mới tự động tăng</returns>
+        /// Created by: NVDIA(07/09/2022)
+        [HttpGet("NewEmployeeCode")]
+        public IActionResult GetNewEmployeeCode()
+        {
+            try
+            {
+                // Khởi tạo kết nối tới DB MySQL
+                var mySqlConnection = new MySqlConnection(connectionString);
+
+                // Chuẩn bị tên stored procedure
+                string storedProcedureName = "Proc_employee_GetMaxCode";
+
+                // Thực hiện gọi vào DB để chạy stored procedure ở trên
+                string maxEmployeeCode = mySqlConnection.QueryFirstOrDefault<string>(storedProcedureName, commandType: System.Data.CommandType.StoredProcedure);
+
+                // Xử lý sinh mã nhân viên mới tự động tăng
+                // Cắt chuỗi mã nhân viên lớn nhất trong hệ thống để lấy phần số
+                // Mã nhân viên mới = "NV" + Giá trị cắt chuỗi ở  trên + 1
+                // "NV99997"
+                string newEmployeeCode = "NV" + (Int64.Parse(maxEmployeeCode.Substring(2)) + 1).ToString();
+
+                // Trả về dữ liệu cho client
+                return StatusCode(StatusCodes.Status200OK, newEmployeeCode);
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message);
+                return StatusCode(StatusCodes.Status400BadRequest, "e001");
+            }
         }
         /// <summary>
         /// API lấy thông tin chi tiết nhân viên
@@ -82,31 +94,36 @@ namespace MISA.HUST._21H._2022.API.Controllers
         [Route("{employeeID}")]
         public IActionResult GetEmployeeByID([FromRoute] Guid employeeID)
         {
-            return StatusCode(StatusCodes.Status200OK, new Employee
+            try
             {
-                EmployeeID = Guid.NewGuid(),
-                EmployeeCode = "NV11111",
-                EmployeeName = "Nguyễn Văn Dìa",
-                DateOfBirth = DateTime.Now,
-                Gender = Gender.Male,
-                IdentityNumber = "123456789102",
-                IdentityIssuedPlace = "CA Hà Nội",
-                IdentityIssuedDate = DateTime.Now,
-                Email = "nguyenvandiat@gmail.com",
-                PhoneNumber = "123456789",
-                PositionID = Guid.NewGuid(),
-                PositionName = "Kế toán",
-                DepartmentID = Guid.NewGuid(),
-                DepartmentName = "Phòng kế toán",
-                TaxCode = "123456789",
-                Salary = 12345678,
-                JoiningDate = DateTime.Now,
-                WorkStatus = WorkStatus.CurrentlyWorking,
-                CreatedDate = DateTime.Now,
-                CreatedBy = "Nguyễn hữu nhân",
-                ModifiedDate = DateTime.Now,
-                ModifiedBy = "Nguyễn hữu nhân"
-            });
+                // Khởi tạo kết nối tới DB MySQL
+                var mySqlConnection = new MySqlConnection(connectionString);
+
+                // Chuẩn bị tên Stored procedure
+                string storedProcedureName = "Proc_employee_GetByEmployeeID";
+
+                // Chuẩn bị tham số đầu vào cho stored procedure
+                var parameters = new DynamicParameters();
+                parameters.Add("@v_EmployeeID", employeeID);
+
+                // Thực hiện gọi vào DB để chạy stored procedure với tham số đầu vào ở trên
+                var employee = mySqlConnection.QueryFirstOrDefault<Employee>(storedProcedureName, parameters, commandType: System.Data.CommandType.StoredProcedure);
+
+                // Xử lý kết quả trả về từ DB
+                if (employee != null)
+                {
+                    return StatusCode(StatusCodes.Status200OK, employee);
+                }
+                else
+                {
+                    return StatusCode(StatusCodes.Status404NotFound);
+                }
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message);
+                return StatusCode(StatusCodes.Status400BadRequest, "e001");
+            }
         }
         /// <summary>
         /// API lọc danh sách nhân viên có điều kiện tìm và phân trang
@@ -128,64 +145,75 @@ namespace MISA.HUST._21H._2022.API.Controllers
             [FromQuery] int pageNumber = 1
             )
         {
-            return StatusCode(StatusCodes.Status200OK, new PagingData<Employee>
+            try
             {
-                Data = new List<Employee>
-                {
-                         new Employee
-                        {
-                            EmployeeID=Guid.NewGuid(),
-                            EmployeeCode="NV11111",
-                            EmployeeName="Nguyễn Văn Dìa",
-                            DateOfBirth=DateTime.Now,
-                            Gender=Gender.Male,
-                            IdentityNumber="123456789102",
-                            IdentityIssuedPlace="CA Hà Nội",
-                            IdentityIssuedDate=DateTime.Now,
-                            Email="nguyenvandiat@gmail.com",
-                            PhoneNumber="123456789",
-                            PositionID=Guid.NewGuid(),
-                            PositionName="Kế toán",
-                            DepartmentID=Guid.NewGuid(),
-                            DepartmentName="Phòng kế toán",
-                            TaxCode="123456789",
-                            Salary=12345678,
-                            JoiningDate=DateTime.Now,
-                            WorkStatus=WorkStatus.CurrentlyWorking,
-                            CreatedDate=DateTime.Now,
-                            CreatedBy="Nguyễn hữu nhân",
-                            ModifiedDate=DateTime.Now,
-                            ModifiedBy="Nguyễn hữu nhân"
-                        },
-                         new Employee
-                        {
-                            EmployeeID=Guid.NewGuid(),
-                            EmployeeCode="NV11112",
-                            EmployeeName="Nguyễn Hữu Nhân",
-                            DateOfBirth=DateTime.Now,
-                            Gender=Gender.Male,
-                            IdentityNumber="123456789103",
-                            IdentityIssuedPlace="CA Hà Nội",
-                            IdentityIssuedDate=DateTime.Now,
-                            Email="nguyenhuunhant@gmail.com",
-                            PhoneNumber="123456789",
-                            PositionID=Guid.NewGuid(),
-                            PositionName="Kế toán",
-                            DepartmentID=Guid.NewGuid(),
-                            DepartmentName="Phòng kế toán",
-                            TaxCode="123456789",
-                            Salary=12345678,
-                            JoiningDate=DateTime.Now,
-                            WorkStatus=WorkStatus.CurrentlyWorking,
-                            CreatedDate=DateTime.Now,
-                            CreatedBy="Nguyễn văn dìa",
-                            ModifiedDate=DateTime.Now,
-                            ModifiedBy="Nguyễn Văn dìa"
-                        }
+                // Khởi tạo kết nối tới DB MySQL
+                var mySqlConnection = new MySqlConnection(connectionString);
 
-                },
-                TotalCount = 2
-            });
+                // Chuẩn bị tên Stored procedure
+                string storedProcedureName = "Proc_employee_GetPaging";
+
+                // Chuẩn bị tham số đầu vào cho stored procedure
+                var parameters = new DynamicParameters();
+                parameters.Add("@v_Offset", (pageNumber - 1) * pageSize);
+                parameters.Add("@v_Limit", pageSize);
+                parameters.Add("@v_Sort", "ModifiedDate DESC");
+
+                var orConditions = new List<string>();
+                var andConditions = new List<string>();
+                string whereClause = "";
+
+                if (keyword != null)
+                {
+                    orConditions.Add($"EmployeeCode LIKE '%{keyword}%'");
+                    orConditions.Add($"EmployeeName LIKE '%{keyword}%'");
+                    orConditions.Add($"PhoneNumber LIKE '%{keyword}%'");
+                }
+                if (orConditions.Count > 0)
+                {
+                    whereClause = $"({string.Join(" OR ", orConditions)})";
+                }
+
+                if (positionID != null)
+                {
+                    andConditions.Add($"PositionID LIKE '%{positionID}%'");
+                }
+                if (departmentID != null)
+                {
+                    andConditions.Add($"DepartmentID LIKE '%{departmentID}%'");
+                }
+
+                if (andConditions.Count > 0)
+                {
+                    whereClause += $" AND {string.Join(" AND ", andConditions)}";
+                }
+
+                parameters.Add("@v_Where", whereClause);
+
+                // Thực hiện gọi vào DB để chạy stored procedure với tham số đầu vào ở trên
+                var multipleResults = mySqlConnection.QueryMultiple(storedProcedureName, parameters, commandType: System.Data.CommandType.StoredProcedure);
+
+                // Xử lý kết quả trả về từ DB
+                if (multipleResults != null)
+                {
+                    var employees = multipleResults.Read<Employee>().ToList();
+                    var totalCount = multipleResults.Read<long>().Single();
+                    return StatusCode(StatusCodes.Status200OK, new PagingData<Employee>()
+                    {
+                        Data = employees,
+                        TotalCount = totalCount
+                    });
+                }
+                else
+                {
+                    return StatusCode(StatusCodes.Status400BadRequest, "e002");
+                }
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message);
+                return StatusCode(StatusCodes.Status400BadRequest, "e001");
+            }
         }
         /// <summary>
         /// API thêm mới một nhân viên
@@ -196,7 +224,66 @@ namespace MISA.HUST._21H._2022.API.Controllers
         [HttpPost]
         public IActionResult InsertEmployee([FromBody] Employee employee)
         {
-            return StatusCode(StatusCodes.Status201Created,Guid.NewGuid());
+            try
+            {
+                // Khởi tạo kết nối tới DB MySQL
+                var mySqlConnection = new MySqlConnection(connectionString);
+
+                // Chuẩn bị câu lệnh INSERT INTO
+                string insertEmployeeCommand = "INSERT INTO employee (EmployeeID, EmployeeCode, EmployeeName, DateOfBirth, Gender, IndentityNumber, IndentityIssuedPlace, IndentityIssuedDate, Email, PhoneNumber, PositionID, DepartmentID, TaxCode, Salary, JoiningDate, WorkStatus, CreatedDate, CreatedBy, ModifiedDate, ModifiedBy) " +
+                    "VALUES (@EmployeeID, @EmployeeCode, @EmployeeName, @DateOfBirth, @Gender, @IndentityNumber, @IndentityIssuedPlace, @IndentityIssuedDate, @Email, @PhoneNumber, @PositionID, @DepartmentID, @TaxCode, @Salary, @JoiningDate, @WorkStatus, @CreatedDate, @CreatedBy, @ModifiedDate, @ModifiedBy);";
+
+                // Chuẩn bị tham số đầu vào cho câu lệnh INSERT INTO
+                var employeeID = Guid.NewGuid();
+                var parameters = new DynamicParameters();
+                parameters.Add("@EmployeeID", employeeID);
+                parameters.Add("@EmployeeCode", employee.EmployeeCode);
+                parameters.Add("@EmployeeName", employee.EmployeeName);
+                parameters.Add("@DateOfBirth", employee.DateOfBirth);
+                parameters.Add("@Gender", employee.Gender);
+                parameters.Add("@IndentityNumber", employee.IndentityNumber);
+                parameters.Add("@IndentityIssuedPlace", employee.IndentityIssuedPlace);
+                parameters.Add("@IndentityIssuedDate", employee.IndentityIssuedDate);
+                parameters.Add("@Email", employee.Email);
+                parameters.Add("@PhoneNumber", employee.PhoneNumber);
+                parameters.Add("@PositionID", employee.PositionID);
+                parameters.Add("@DepartmentID", employee.DepartmentID);
+                parameters.Add("@TaxCode", employee.TaxCode);
+                parameters.Add("@Salary", employee.Salary);
+                parameters.Add("@JoiningDate", employee.JoiningDate);
+                parameters.Add("@WorkStatus", employee.WorkStatus);
+                parameters.Add("@CreatedDate", employee.CreatedDate);
+                parameters.Add("@CreatedBy", employee.CreatedBy);
+                parameters.Add("@ModifiedDate", employee.ModifiedDate);
+                parameters.Add("@ModifiedBy", employee.ModifiedBy);
+
+                // Thực hiện gọi vào DB để chạy câu lệnh INSERT INTO với tham số đầu vào ở trên
+                int numberOfAffectedRows = mySqlConnection.Execute(insertEmployeeCommand, parameters);
+
+                // Xử lý kết quả trả về từ DB
+                if (numberOfAffectedRows > 0)
+                {
+                    // Trả về dữ liệu cho client
+                    return StatusCode(StatusCodes.Status201Created, employeeID);
+                }
+                else
+                {
+                    return StatusCode(StatusCodes.Status400BadRequest, "e002");
+                }
+            }
+            catch (MySqlException mySqlException)
+            {
+                if (mySqlException.ErrorCode == MySqlErrorCode.DuplicateKeyEntry)
+                {
+                    return StatusCode(StatusCodes.Status400BadRequest, "e003");
+                }
+                return StatusCode(StatusCodes.Status400BadRequest, "e001");
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message);
+                return StatusCode(StatusCodes.Status400BadRequest, "e001");
+            }
         }
         /// <summary>
         /// API sửa một nhân viên
@@ -209,7 +296,82 @@ namespace MISA.HUST._21H._2022.API.Controllers
         [Route("{employeeID}")]
         public IActionResult UpdateEmployee([FromBody] Employee employee, [FromRoute] Guid employeeID)
         {
-            return StatusCode(StatusCodes.Status201Created,employeeID);
+            try
+            {
+                // Khởi tạo kết nối tới DB MySQL
+                var mySqlConnection = new MySqlConnection(connectionString);
+
+                // Chuẩn bị câu lệnh UPDATE
+                string updateEmployeeCommand = "UPDATE employee " +
+                    "SET EmployeeCode = @EmployeeCode, " +
+                    "EmployeeName = @EmployeeName, " +
+                    "DateOfBirth = @DateOfBirth, " +
+                    "Gender = @Gender, " +
+                    "IndentityNumber = @IndentityNumber, " +
+                    "IndentityIssuedPlace = @IndentityIssuedPlace, " +
+                    "IndentityIssuedDate = @IndentityIssuedDate, " +
+                    "Email = @Email, " +
+                    "PhoneNumber = @PhoneNumber, " +
+                    "PositionID = @PositionID, " +
+                    "DepartmentID = @DepartmentID, " +
+                    "TaxCode = @TaxCode, " +
+                    "Salary = @Salary, " +
+                    "JoiningDate = @JoiningDate, " +
+                    "WorkStatus = @WorkStatus, " +
+                    "ModifiedDate = @ModifiedDate, " +
+                    "ModifiedBy = @ModifiedBy " +
+                    "WHERE EmployeeID = @EmployeeID;";
+
+                // Chuẩn bị tham số đầu vào cho câu lệnh UPDATE
+                var parameters = new DynamicParameters();
+                parameters.Add("@EmployeeID", employeeID);
+                parameters.Add("@EmployeeCode", employee.EmployeeCode);
+                parameters.Add("@EmployeeName", employee.EmployeeName);
+                parameters.Add("@DateOfBirth", employee.DateOfBirth);
+                parameters.Add("@Gender", employee.Gender);
+                parameters.Add("@IndentityNumber", employee.IndentityNumber);
+                parameters.Add("@IndentityIssuedPlace", employee.IndentityIssuedPlace);
+                parameters.Add("@IndentityIssuedDate", employee.IndentityIssuedDate);
+                parameters.Add("@Email", employee.Email);
+                parameters.Add("@PhoneNumber", employee.PhoneNumber);
+                parameters.Add("@PositionID", employee.PositionID);
+                parameters.Add("@DepartmentID", employee.DepartmentID);
+                parameters.Add("@TaxCode", employee.TaxCode);
+                parameters.Add("@Salary", employee.Salary);
+                parameters.Add("@JoiningDate", employee.JoiningDate);
+                parameters.Add("@WorkStatus", employee.WorkStatus);
+                parameters.Add("@ModifiedDate", employee.ModifiedDate);
+                parameters.Add("@ModifiedBy", employee.ModifiedBy);
+
+                // Thực hiện gọi vào DB để chạy câu lệnh UPDATE với tham số đầu vào ở trên
+                int numberOfAffectedRows = mySqlConnection.Execute(updateEmployeeCommand, parameters);
+
+                // Xử lý kết quả trả về từ DB
+                if (numberOfAffectedRows > 0)
+                {
+                    // Trả về dữ liệu cho client
+                    return StatusCode(StatusCodes.Status200OK, employeeID);
+                }
+                else
+                {
+                    return StatusCode(StatusCodes.Status400BadRequest, "e002");
+                }
+
+            }
+            catch (MySqlException mySqlException)
+            {
+                if (mySqlException.ErrorCode == MySqlErrorCode.DuplicateKeyEntry)
+                {
+                    return StatusCode(StatusCodes.Status400BadRequest, "e003");
+                }
+
+                return StatusCode(StatusCodes.Status400BadRequest, "e001");
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message);
+                return StatusCode(StatusCodes.Status400BadRequest, "e001");
+            }
         }
         /// <summary>
         /// API xóa nhân viên
@@ -221,7 +383,37 @@ namespace MISA.HUST._21H._2022.API.Controllers
         [Route("{employeeID}")]
         public IActionResult DeleteEmployee([FromRoute] Guid employeeID)
         {
-            return StatusCode(StatusCodes.Status201Created, employeeID);
+            try
+            {
+                // Khởi tạo kết nối tới DB MySQL
+                var mySqlConnection = new MySqlConnection(connectionString);
+
+                // Chuẩn bị câu lệnh DELETE
+                string deleteEmployeeCommand = "DELETE FROM employee WHERE EmployeeID = @EmployeeID";
+
+                // Chuẩn bị tham số đầu vào cho câu lệnh DELETE
+                var parameters = new DynamicParameters();
+                parameters.Add("@EmployeeID", employeeID);
+
+                // Thực hiện gọi vào DB để chạy câu lệnh DELETE với tham số đầu vào ở trên
+                int numberOfAffectedRows = mySqlConnection.Execute(deleteEmployeeCommand, parameters);
+
+                // Xử lý kết quả trả về từ DB
+                if (numberOfAffectedRows > 0)
+                {
+                    // Trả về dữ liệu cho client
+                    return StatusCode(StatusCodes.Status200OK, employeeID);
+                }
+                else
+                {
+                    return StatusCode(StatusCodes.Status400BadRequest, "e002");
+                }
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message);
+                return StatusCode(StatusCodes.Status400BadRequest, "e001");
+            }
         }
     }
 }

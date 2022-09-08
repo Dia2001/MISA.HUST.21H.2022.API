@@ -44,17 +44,17 @@ namespace MISA.HUST._21H._2022.API.Entities
         /// Số CMND
         /// </summary>
         [Required(ErrorMessage = "e006")]
-        public string IdentityNumber { get; set; }
+        public string IndentityNumber { get; set; }
 
         /// <summary>
         /// Nơi cấp CMND 
         /// </summary>
-        public string? IdentityIssuedPlace { get; set; }
+        public string? IndentityIssuedPlace { get; set; }
 
         /// <summary>
         /// Ngày cấp CMND
         /// </summary>
-        public DateTime IdentityIssuedDate { get; set; }
+        public DateTime IndentityIssuedDate { get; set; }
 
         /// <summary>
         /// Email
