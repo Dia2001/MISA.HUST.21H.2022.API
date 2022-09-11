@@ -4,6 +4,7 @@ using MISA.HUST._21H._2022.API.Entities;
 using MISA.HUST._21H._2022.API.Entities.DTO;
 using MISA.HUST._21H._2022.API.Helper;
 using MySqlConnector;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace MISA.HUST._21H._2022.API.Controllers
 {
@@ -11,7 +12,7 @@ namespace MISA.HUST._21H._2022.API.Controllers
     [ApiController]
     public class EmployeesController : ControllerBase
     {
-        static public readonly string connectionString = AppSettings.Instance.ConnectionString;
+        private string connectionString = AppSettings.Instance.ConnectionString;
 
         /// <summary>
         /// API lấy tất cả danh sách nhân viên
@@ -169,7 +170,7 @@ namespace MISA.HUST._21H._2022.API.Controllers
                     orConditions.Add($"EmployeeName LIKE '%{keyword}%'");
                     orConditions.Add($"PhoneNumber LIKE '%{keyword}%'");
                 }
-                if (orConditions.Count > 0)
+               if (orConditions.Count > 0)
                 {
                     whereClause = $"({string.Join(" OR ", orConditions)})";
                 }
@@ -185,7 +186,14 @@ namespace MISA.HUST._21H._2022.API.Controllers
 
                 if (andConditions.Count > 0)
                 {
-                    whereClause += $" AND {string.Join(" AND ", andConditions)}";
+                    if (whereClause != "")
+                    {
+                        whereClause += $" AND {string.Join(" AND ", andConditions)}";
+                    }
+                    else
+                    {
+                        whereClause+= $"{string.Join(" AND ", andConditions)}";
+                    }    
                 }
 
                 parameters.Add("@v_Where", whereClause);
@@ -211,7 +219,6 @@ namespace MISA.HUST._21H._2022.API.Controllers
             }
             catch (Exception exception)
             {
-                Console.WriteLine(exception.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, "e001");
             }
         }
@@ -222,6 +229,9 @@ namespace MISA.HUST._21H._2022.API.Controllers
         /// <returns>ID nhân viên vừa thêm mới</returns>
         /// Create by: NVDIA (1/9/2022)
         [HttpPost]
+        [SwaggerResponse(StatusCodes.Status201Created, type: typeof(Guid))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest)]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError)]
         public IActionResult InsertEmployee([FromBody] Employee employee)
         {
             try
